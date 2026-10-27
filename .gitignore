@@ -1,0 +1,9 @@
+/target
+*.stl
+*.obj
+*.mtl
+!docs/images/*.png
+__pycache__/
+*.pyc
+.idea/
+.vscode/
