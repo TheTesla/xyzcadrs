@@ -79,8 +79,8 @@ pub struct MeshResult {
 /// `min_val`/`max_val` bound the axis-aligned search cube for the initial
 /// surface point; `eval_limit` (0 = unlimited) caps the seed search's field
 /// evaluations as a hang guard for fields without material.
-pub fn render<F: Field + Sync>(
-    f: &F,
+pub fn render(
+    f: &(dyn Field + Sync),
     res: f64,
     min_val: f64,
     max_val: f64,

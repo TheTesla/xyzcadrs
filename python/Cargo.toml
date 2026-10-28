@@ -1,0 +1,13 @@
+[package]
+name = "xyzcadrs-py"
+version = "0.2.0"
+edition = "2021"
+description = "Python bindings for xyzcadrs (functional CAD renderer)"
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+xyzcadrs = { path = "..", default-features = false }

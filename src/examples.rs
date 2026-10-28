@@ -119,7 +119,7 @@ pub fn hex_nut() -> impl Field {
 }
 
 /// Registry entry: description, field constructor, suggested resolution.
-pub type ExampleEntry = (&'static str, Box<dyn Fn([f64; 3]) -> u8 + Sync>, f64);
+pub type ExampleEntry = (&'static str, Box<dyn crate::field::Field + Sync>, f64);
 
 /// Registry of the built-in example fields with their suggested resolution.
 pub fn lookup(name: &str) -> Option<ExampleEntry> {

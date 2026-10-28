@@ -142,6 +142,28 @@ becomes one OBJ group with its own MTL color:
 
 ![Two-material split box](docs/images/split_box.png)
 
+## Bindings
+
+The renderer is not limited to Rust — a C ABI layer
+([`c-api/`](c-api/)) makes it available from many languages:
+
+- **Python with numba `njit` fields** — write fields exactly like in the
+  original xyzcad; the compiled machine code is called directly by the Rust
+  renderer (no GIL, no per-point overhead). ~4x faster than the warm numba
+  renderer, with no renderer JIT at all. See [`docs/BINDINGS.md`](docs/BINDINGS.md).
+- **C** — plain `libxyzcadrs_c` with a function-pointer field API
+  ([`c-api/include/xyzcadrs.h`](c-api/include/xyzcadrs.h)).
+- **C++** — RAII header with `std::function` fields
+  ([`c-api/include/xyzcadrs.hpp`](c-api/include/xyzcadrs.hpp)).
+- **Cython** — Python-callable trampoline or zero-overhead `cdef` fields
+  ([`bindings/cython/`](bindings/cython/)).
+- **Go** — cgo binding with an exported trampoline
+  ([`bindings/go/`](bindings/go/)).
+
+Every binding is covered by parity tests against the Python original —
+details, build instructions and benchmark numbers in
+[`docs/BINDINGS.md`](docs/BINDINGS.md).
+
 ## How it works
 
 1. **Seed search** — probe a hierarchically refined grid over

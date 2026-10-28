@@ -32,7 +32,7 @@ pub const DEFAULT_EVAL_LIMIT: usize = 1_000_000_000;
 /// Progress lines are printed to stdout with elapsed seconds, matching the
 /// original's log format. For silent rendering use [`render`] and the
 /// exporters directly. Returns the render [`Summary`].
-pub fn render_and_save<F: Field + Sync>(f: &F, filename: &str, res: f64) -> Result<Summary> {
+pub fn render_and_save(f: &(dyn Field + Sync), filename: &str, res: f64) -> Result<Summary> {
     let t0 = Instant::now();
     let log = |elapsed: f64, msg: &str| println!("[{elapsed:9.4}] {msg}");
     log(
@@ -83,6 +83,6 @@ pub fn report(summary: &Summary) {
 }
 
 /// Convenience: render and hand back the mesh without writing anything.
-pub fn render_mesh<F: Field + Sync>(f: &F, res: f64) -> Result<MeshResult> {
+pub fn render_mesh(f: &(dyn Field + Sync), res: f64) -> Result<MeshResult> {
     render(f, res, DEFAULT_MIN_VAL, DEFAULT_MAX_VAL, DEFAULT_EVAL_LIMIT)
 }

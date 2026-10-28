@@ -16,8 +16,8 @@ use crate::field::Field;
 /// Returns `None` when no differing point is found (empty field) or when the
 /// evaluation budget `eval_limit` (0 = unlimited) is exhausted before a
 /// differing point shows up.
-pub fn find_init_pnt<F: Field>(
-    f: &F,
+pub fn find_init_pnt(
+    f: &dyn Field,
     min_val: f64,
     max_val: f64,
     res_steps: u32,
@@ -57,7 +57,7 @@ pub fn find_init_pnt<F: Field>(
 /// Port of `xyzcad.render.get_surfacePnt`: a chaotic bisection that flips
 /// direction whenever the sampled field value changes. With `res_steps`
 /// iterations the final step size is `|p1 - p0| / 2^(res_steps - 1)`.
-pub fn get_surface_pnt<F: Field>(f: &F, p0: [f64; 3], p1: [f64; 3], res_steps: u32) -> [f64; 3] {
+pub fn get_surface_pnt(f: &dyn Field, p0: [f64; 3], p1: [f64; 3], res_steps: u32) -> [f64; 3] {
     let mut s0 = f(p0);
     let mut u = 0.0f64;
     let mut d = 1.0f64;
@@ -84,8 +84,8 @@ pub fn get_surface_pnt<F: Field>(f: &F, p0: [f64; 3], p1: [f64; 3], res_steps: u
 /// Port of `xyzcad.render.find_surface_pnt`. The refinement depth is derived
 /// from the requested raster resolution `res`, matching the original:
 /// `res_steps = floor(log2((max_val - min_val) / res)) + 2`.
-pub fn find_surface_pnt<F: Field>(
-    f: &F,
+pub fn find_surface_pnt(
+    f: &dyn Field,
     min_val: f64,
     max_val: f64,
     res: f64,

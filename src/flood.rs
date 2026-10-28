@@ -38,11 +38,7 @@ pub fn grid_key(p: [f64; 3]) -> GridKey {
 ///
 /// Returns one `(cube low corner, corner values)` pair per discovered cube
 /// (unordered; sort for deterministic downstream output).
-pub fn get_surface<F: Field>(
-    f: &F,
-    start_pnt: [f64; 3],
-    res: f64,
-) -> Vec<([f64; 3], CornerValues)> {
+pub fn get_surface(f: &dyn Field, start_pnt: [f64; 3], res: f64) -> Vec<([f64; 3], CornerValues)> {
     let r = res;
     let start = [
         rnd(start_pnt[0] - r / 2.0),

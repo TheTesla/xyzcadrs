@@ -1,9 +1,29 @@
-/target
+# Rust build artifacts (root, python/, c-api/)
+target/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Cython build artifacts
+bindings/cython/xyzcadrs_cython.c
+bindings/cython/*.so
+
+# Go test binaries
+bindings/go/xyzcadrs.test
+
+# Rendered output files
 *.stl
 *.obj
 *.mtl
 !docs/images/*.png
-__pycache__/
-*.pyc
+
+# Editors / IDE
 .idea/
 .vscode/
+# Compiled extension modules / shared libraries
+*.so

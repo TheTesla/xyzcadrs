@@ -1,0 +1,26 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "xyzcadrs"
+version = "0.2.0"
+description = "Functional/implicit CAD in Rust: render f(x,y,z) material fields to watertight STL and colored OBJ. Python bindings with numba njit field support."
+requires-python = ">=3.9"
+license = "AGPL-3.0-or-later"
+authors = [{ name = "Stefan Helmert", email = "stefan.helmert@t-online.de" }]
+keywords = ["cad", "stl", "3d-printing", "marching-cubes", "numba"]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Intended Audience :: Manufacturing",
+]
+
+[tool.maturin]
+python-source = "."
+module-name = "xyzcadrs._native"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,12 @@
+[package]
+name = "xyzcadrs-capi"
+version = "0.2.0"
+edition = "2021"
+description = "C ABI for xyzcadrs (functional CAD renderer): render fields via C function pointers to STL/OBJ"
+
+[lib]
+name = "xyzcadrs_c"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+xyzcadrs = { path = "..", default-features = false }

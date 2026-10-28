@@ -1,6 +1,6 @@
 [package]
 name = "xyzcadrs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.75"
 description = "Functional/implicit CAD in Rust: render f(x,y,z) material fields to watertight 3D-printable STL and colored OBJ — a Rust port of xyzcad"

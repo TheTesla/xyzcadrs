@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "Cython>=3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xyzcadrs-cython"
+version = "0.2.0"
+description = "Cython bindings for the xyzcadrs C API: render f(x,y,z) material fields to watertight STL"
+requires-python = ">=3.9"
+license = "AGPL-3.0-or-later"
+
+[tool.setuptools]
+py-modules = ["xyzcadrs_cython"]
