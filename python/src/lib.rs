@@ -78,9 +78,10 @@ fn with_field<T: Send>(
                 }
                 Python::with_gil(|py| {
                     // Original xyzcad calling convention: the callable
-                    // receives ONE 3-tuple argument (functions use `p[:3]`).
+                    // receives ONE 4-tuple argument (x, y, z, params) with
+                    // the default empty params, like renderAndSave does.
                     match obj
-                        .call1(py, ((p[0], p[1], p[2]),))
+                        .call1(py, ((p[0], p[1], p[2], ()),))
                         .and_then(|v| v.extract::<i64>(py))
                     {
                         Ok(v) => v.clamp(0, 255) as u8,
@@ -141,10 +142,10 @@ fn summary_to_dict(py: Python, mesh: &MeshResult, triangles: usize) -> PyResult<
 /// `field` is either a numba `njit` dispatcher (wrapped automatically to a
 /// native machine-code callback by the Python package), an object with an
 /// `address` attribute pointing to a `uint8_t f(double, double, double)` C
-/// function, or any Python callable receiving a single 3-tuple argument
-/// `(x, y, z)` — the original xyzcad calling convention. The export format
-/// follows the extension (`.stl` / `.obj`). Returns the render summary as a
-/// dict.
+/// function, or any Python callable receiving a single 4-tuple argument
+/// `(x, y, z, params)` with empty params — the original xyzcad calling
+/// convention. The export format follows the extension (`.stl` / `.obj`).
+/// Returns the render summary as a dict.
 #[pyfunction]
 #[pyo3(signature = (field, filename, res, *, min_val = -1000.0, max_val = 1000.0, eval_limit = 0))]
 fn render_and_save(

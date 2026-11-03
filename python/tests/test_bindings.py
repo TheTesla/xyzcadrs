@@ -106,6 +106,26 @@ def test_bool_returning_njit_field(tmp_path):
     assert_summary_parity(summary, [452, 1, 907, 2253, 450, 452, 0])
 
 
+def test_params_and_four_tuple_convention(tmp_path):
+    # Original xyzcad renderAndSave calls the field with (x, y, z, params).
+    # Fields that read the params slot must keep working.
+    from numba import njit
+
+    @njit
+    def param_sphere(p):
+        x, y, z = p[0], p[1], p[2]
+        inside = 100.0 > x * x + y * y + z * z
+        # Params slot: (radius_squared,). Use it as an outer cutoff.
+        if len(p) == 4 and inside and p[3][0] > x * x + y * y + z * z:
+            return 1
+        return 0
+
+    summary = xyzcadrs.render_and_save(
+        param_sphere, str(tmp_path / "p.stl"), 2.0, params=(144.0,)
+    )
+    assert_summary_parity(summary, [452, 1, 907, 2253, 450, 452, 0])
+
+
 def test_plain_python_callable_same_calling_convention(tmp_path):
     def sphere(p):
         x, y, z = p[:3]
