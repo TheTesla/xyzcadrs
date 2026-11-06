@@ -1,6 +1,6 @@
 [package]
 name = "xyzcadrs-capi"
-version = "0.3.8"
+version = "0.3.9"
 edition = "2021"
 description = "C ABI for xyzcadrs (functional CAD renderer): render fields via C function pointers to STL/OBJ"
 

@@ -16,36 +16,63 @@ use crate::field::Field;
 /// Returns `None` when no differing point is found (empty field) or when the
 /// evaluation budget `eval_limit` (0 = unlimited) is exhausted before a
 /// differing point shows up.
+///
+/// The scan is parallelised per depth level with an order-preserving
+/// reduction (lowest scan-order index among the differing probes wins), so
+/// the returned point is bit-identical to a sequential scan while the
+/// millions of evaluations of a deep level run on all cores.
 pub fn find_init_pnt(
-    f: &dyn Field,
+    f: &(dyn Field + Sync),
     min_val: f64,
     max_val: f64,
     res_steps: u32,
     eval_limit: usize,
 ) -> Option<[[f64; 3]; 2]> {
+    use rayon::prelude::*;
+
     let s0 = f([0.0, 0.0, 0.0]);
-    let mut budget = eval_limit;
+    let span = max_val - min_val;
+    let mut evaluated: u64 = 1; // the origin probe
     for d in 0..res_steps {
         let n = 2u32.pow(d);
-        let span = max_val - min_val;
-        for xi in 0..n {
-            let x = (xi as f64 + 0.5) / n as f64 * span + min_val;
-            for yi in 0..n {
-                let y = (yi as f64 + 0.5) / n as f64 * span + min_val;
-                for zi in 0..n {
-                    let z = (zi as f64 + 0.5) / n as f64 * span + min_val;
-                    let s = f([x, y, z]);
-                    if s != s0 {
-                        return Some([[x, y, z], [0.0, 0.0, 0.0]]);
-                    }
-                    if eval_limit > 0 {
-                        budget -= 1;
-                        if budget == 0 {
-                            return None;
-                        }
-                    }
+        let count = n as u64 * n as u64 * n as u64;
+        // Budget guard at depth granularity (the guard only bounds fields
+        // without material; a hit inside the level is still reported).
+        if eval_limit > 0 && evaluated + count > eval_limit as u64 {
+            return None;
+        }
+        let nf = n as f64;
+        // Lowest scan-order index (xi outermost, zi innermost) wins, matching
+        // the sequential original exactly.
+        let hit = (0..count)
+            .into_par_iter()
+            .filter_map(|i| {
+                let xi = (i / (n as u64 * n as u64)) as u32;
+                let yi = ((i / n as u64) % n as u64) as u32;
+                let zi = (i % n as u64) as u32;
+                let p = [
+                    (xi as f64 + 0.5) / nf * span + min_val,
+                    (yi as f64 + 0.5) / nf * span + min_val,
+                    (zi as f64 + 0.5) / nf * span + min_val,
+                ];
+                if f(p) != s0 {
+                    Some(i)
+                } else {
+                    None
                 }
-            }
+            })
+            .min();
+        evaluated += count;
+        if let Some(i) = hit {
+            let xi = (i / (n as u64 * n as u64)) as u32;
+            let yi = ((i / n as u64) % n as u64) as u32;
+            let zi = (i % n as u64) as u32;
+            let p = [
+                (xi as f64 + 0.5) / nf * span + min_val,
+                (yi as f64 + 0.5) / nf * span + min_val,
+                (zi as f64 + 0.5) / nf * span + min_val,
+            ];
+            return Some([p, [0.0, 0.0, 0.0]]);
         }
     }
     None
@@ -85,7 +112,7 @@ pub fn get_surface_pnt(f: &dyn Field, p0: [f64; 3], p1: [f64; 3], res_steps: u32
 /// from the requested raster resolution `res`, matching the original:
 /// `res_steps = floor(log2((max_val - min_val) / res)) + 2`.
 pub fn find_surface_pnt(
-    f: &dyn Field,
+    f: &(dyn Field + Sync),
     min_val: f64,
     max_val: f64,
     res: f64,
