@@ -112,13 +112,12 @@ def _adapt(field, params=()):
 
 
 def render_and_save(
-    field, filename, res, *, min_val=-1000.0, max_val=1000.0, eval_limit=0, params=()
+    field, filename, res, params=(), *, min_val=-1000.0, max_val=1000.0, eval_limit=0
 ):
-    """Render ``field`` and write ``filename`` (``*.stl`` or ``*.obj``).
-
-    Drop-in for ``xyzcad.render.renderAndSave(field, filename, res,
-    params)``: the field is called with the 4-tuple ``(x, y, z, params)``,
-    exactly like the original. Returns a summary dict: ``cubes``,
+    """Drop-in for ``xyzcad.render.renderAndSave(field, filename, res,
+    params)``: same argument order, the field is called with the 4-tuple
+    ``(x, y, z, params)`` exactly like the original. Writes ``filename``
+    (``*.stl`` or ``*.obj``) and returns a summary dict: ``cubes``,
     ``materials``, ``cube_points``, ``cube_edges``, ``surface_points``,
     ``filtered_cubes``, ``polygons``, ``repaired_polygons`` and
     ``triangles_written``.
@@ -133,7 +132,7 @@ def render_and_save(
     )
 
 
-def render(field, res, *, min_val=-1000.0, max_val=1000.0, eval_limit=0, params=()):
+def render(field, res, params=(), *, min_val=-1000.0, max_val=1000.0, eval_limit=0):
     """Render ``field`` and return a dict with ``vertices``, ``groups``,
     ``polygons`` and ``summary`` (no file is written). The field is called
     with the original 4-tuple convention ``(x, y, z, params)``."""
