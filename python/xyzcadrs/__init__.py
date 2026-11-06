@@ -141,20 +141,14 @@ def _describe_field(field):
         is_njit = isinstance(field, Dispatcher)
     except ImportError:
         is_njit = False
-    if is_njit:
-        if getattr(field, "_xyzcadrs_native", None) is not None or getattr(
-            field, "_xyzcadrs_params_natives", None
-        ):
-            state = "reusing cached C trampoline(s)"
-        else:
-            state = "compiling C trampoline via numba.cfunc (once, ~0.4 s)"
-        print(f"    field: numba njit dispatcher -> {state}", flush=True)
-    else:
+    if not is_njit:
         print(
             "    field: plain Python callable (no JIT; "
             "decorate the field with @njit for ~100x faster evaluation)",
             flush=True,
         )
+    # njit fields are covered by the renderer's "Compiling" banner (field
+    # machine code is produced at the first evaluation, inside it).
 
 
 def render_and_save(

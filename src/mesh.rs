@@ -96,6 +96,12 @@ pub fn render(
     let t0 = Instant::now();
     let log = |msg: &str| println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
 
+    // Like the original's "Compiling" step: on the first call of a run the
+    // field's machine code is produced here (numba field JIT / first cfunc
+    // execution). Warm runs and native C callbacks pass through instantly.
+    log("Compiling");
+    std::hint::black_box(f([0.0, 0.0, 0.0]));
+
     log("Searching initial point on surface");
     let seed = find_surface_pnt(f, min_val, max_val, res, eval_limit)?;
     log("Walking over entire surface");
