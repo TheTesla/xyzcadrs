@@ -92,15 +92,19 @@ pub fn render(
     }
 
     // Stage log in the wording of the Python original, so every front end
-    // (CLI, Python binding, library) shows the same progress.
+    // (CLI, Python binding, library) shows the same progress. Like the
+    // original's log_it, each timestamp is taken AFTER the work it names -
+    // so every line shows how long that step took.
     let t0 = Instant::now();
     let log = |msg: &str| println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
 
     // Like the original's "Compiling" step: on the first call of a run the
     // field's machine code is produced here (numba field JIT / first cfunc
     // execution). Warm runs and native C callbacks pass through instantly.
-    log("Compiling");
+    // The evaluation happens BEFORE the log line, so the timestamp measures
+    // the compilation.
     std::hint::black_box(f([0.0, 0.0, 0.0]));
+    log("Compiling");
 
     log("Searching initial point on surface");
     let seed = find_surface_pnt(f, min_val, max_val, res, eval_limit)?;
