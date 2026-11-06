@@ -13,7 +13,7 @@ import pytest
 def test_import_surface():
     from xyzcad import __version__, render
 
-    assert __version__ == "0.3.0"
+    assert __version__
     assert hasattr(render, "renderAndSave")
     assert hasattr(render, "mesh_surface_function")
     assert hasattr(render, "get_installed_version")

@@ -17,9 +17,14 @@ plain callable) receiving ``(x, y, z, params)`` and returning bool/int.
 
 import numpy as np
 
+from xyzcad._version import __version__ as _SHIM_VERSION
 from xyzcadrs import __version__ as _renderer_version
 from xyzcadrs import render as _render_mesh
 from xyzcadrs import render_and_save as _render_and_save
+
+# Version string of the original xyzcad this shim replaces, as it appears
+# in the original's startup line ("running xyzcad version 0.7.3").
+_ORIGINAL_VERSION = "0.7.3"
 
 __all__ = ["renderAndSave", "mesh_surface_function", "get_installed_version"]
 
@@ -39,10 +44,11 @@ def renderAndSave(func, filename, res=1, params=()):
     import time
 
     t0 = time.time()
-    # Same startup line as the original, so users can see which renderer is
-    # actually running (the version reported is xyzcadrs, not 0.7.3).
-    print(f"running xyzcadrs {__import__('xyzcadrs').__version__} "
-          f"(Rust renderer, xyzcad shim)")
+    # Startup line like the original's, stating which renderer is actually
+    # running and what it replaces (the original would print
+    # "running xyzcad version 0.7.3").
+    print(f"running rust implementation xyzcadrs {_renderer_version} "
+          f"(replacing xyzcad version {_ORIGINAL_VERSION})")
     result = _render_and_save(func, filename, res, params)
     print(f"[{time.time() - t0:9.4f}] Done.")
     return result
