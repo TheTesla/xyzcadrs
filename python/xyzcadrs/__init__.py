@@ -106,9 +106,55 @@ def _adapt(field, params=()):
             except AttributeError:
                 pass
             return native
-        # Custom params: compile a fresh trampoline (not cached).
-        return NumbaField(field, params)
+        # Custom params: one trampoline per distinct params tuple, cached on
+        # the dispatcher (batch builds re-use it for equal params).
+        key = tuple(params)
+        cache = getattr(field, "_xyzcadrs_params_natives", None)
+        if cache is None:
+            cache = {}
+            try:
+                field._xyzcadrs_params_natives = cache
+            except AttributeError:
+                pass
+        if key in cache:
+            return cache[key]
+        native = NumbaField(field, params)
+        cache[key] = native
+        return native
     return field
+
+
+def _describe_field(field):
+    """Log what kind of field was passed and what compilation it implies.
+
+    The original printed a "Compiling" step (numba JIT of its whole
+    renderer, ~25 s). There is no renderer JIT here; the only compilation
+    is the tiny numba.cfunc trampoline around an njit field (once, ~0.4 s),
+    which happens inside _adapt().
+    """
+    if hasattr(field, "address"):
+        print("    field: native C callback (no compilation)", flush=True)
+        return
+    try:
+        from numba.core.dispatcher import Dispatcher
+
+        is_njit = isinstance(field, Dispatcher)
+    except ImportError:
+        is_njit = False
+    if is_njit:
+        if getattr(field, "_xyzcadrs_native", None) is not None or getattr(
+            field, "_xyzcadrs_params_natives", None
+        ):
+            state = "reusing cached C trampoline(s)"
+        else:
+            state = "compiling C trampoline via numba.cfunc (once, ~0.4 s)"
+        print(f"    field: numba njit dispatcher -> {state}", flush=True)
+    else:
+        print(
+            "    field: plain Python callable (no JIT; "
+            "decorate the field with @njit for ~100x faster evaluation)",
+            flush=True,
+        )
 
 
 def render_and_save(
@@ -122,6 +168,7 @@ def render_and_save(
     ``filtered_cubes``, ``polygons``, ``repaired_polygons`` and
     ``triangles_written``.
     """
+    _describe_field(field)
     return _render_and_save_native(
         _adapt(field, params),
         filename,

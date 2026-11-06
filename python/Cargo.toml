@@ -1,6 +1,6 @@
 [package]
 name = "xyzcadrs-py"
-version = "0.3.4"
+version = "0.3.6"
 edition = "2021"
 description = "Python bindings for xyzcadrs (functional CAD renderer)"
 
