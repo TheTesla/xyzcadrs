@@ -1,6 +1,7 @@
 //! Meshing: raster cubes -> points -> edges -> cut points -> polygons.
 
 use std::collections::{BTreeSet, HashMap};
+use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -90,7 +91,14 @@ pub fn render(
         return Err(crate::error::Error::InvalidResolution(res));
     }
 
+    // Stage log in the wording of the Python original, so every front end
+    // (CLI, Python binding, library) shows the same progress.
+    let t0 = Instant::now();
+    let log = |msg: &str| println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
+
+    log("Searching initial point on surface");
     let seed = find_surface_pnt(f, min_val, max_val, res, eval_limit)?;
+    log("Walking over entire surface");
     let flooded = get_surface(f, seed, res);
 
     // Deterministic cube order: sort by the bit-key (total order, no NaN).
@@ -101,6 +109,7 @@ pub fn render(
     let cube_vals: Vec<&CornerValues> =
         cube_keys.iter().map(|k| corner_of[&grid_key(*k)]).collect();
 
+    log("Converting corners into points");
     // --- raster points -----------------------------------------------------
     let mut point_ids: HashMap<GridKey, u32> = HashMap::with_capacity(cube_keys.len() * 2);
     let mut points: Vec<[f64; 3]> = Vec::with_capacity(cube_keys.len() * 2);
@@ -135,6 +144,7 @@ pub fn render(
     // itself); evaluating the field directly is equivalent and cheaper.
     let point_vals: Vec<u8> = points.iter().map(|&p| f(p)).collect();
 
+    log("Converting corners into cubes");
     // --- cube -> point indices and cube edges ------------------------------
     let cube_point_ids: Vec<[u32; 8]> = cube_keys
         .iter()
@@ -155,6 +165,7 @@ pub fn render(
         })
         .collect();
 
+    log("Converting coordinates into relations");
     let mut edge_ids: HashMap<(u32, u32), u32> = HashMap::with_capacity(cube_keys.len() * 6);
     let mut edges: Vec<(u32, u32)> = Vec::with_capacity(cube_keys.len() * 6);
     let mut cube_edge_ids: Vec<[u32; 12]> = Vec::with_capacity(cube_keys.len());
@@ -172,6 +183,7 @@ pub fn render(
         cube_edge_ids.push(eids);
     }
 
+    log("Searching all marching cubes edges, cut by surface");
     // --- edges cut by the isosurface ---------------------------------------
     let cut_edges: Vec<u32> = edges
         .iter()
@@ -185,6 +197,7 @@ pub fn render(
         .map(|(vi, &e)| (e, vi as u32))
         .collect();
 
+    log("Approximating exact coordinates of the cuts");
     // Refine every cut point onto the exact isosurface, in parallel.
     let vertices: Vec<[f64; 3]> = cut_edges
         .par_iter()
@@ -214,6 +227,7 @@ pub fn render(
     };
 
     for &m in materials.iter().skip(1) {
+        log(&format!("Material {m}"));
         // Polygon edge-index loops per cube.
         let polys_edge: Vec<Vec<u32>> = cube_edge_ids
             .par_iter()
@@ -241,6 +255,11 @@ pub fn render(
             .collect();
 
         let repaired = repair_surface(&polys_edge);
+        log(&format!(
+            "  Calculating closed surface: {} polygons, {} repaired",
+            polys_edge.len(),
+            repaired.len()
+        ));
 
         let poly_count = polys_edge.len() + repaired.len();
         let repaired_count = repaired.len();

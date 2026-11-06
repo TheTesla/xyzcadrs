@@ -17,6 +17,7 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -27,6 +28,12 @@ use xyzcadrs::mesh::{render as render_field, MeshResult};
 use xyzcadrs::validate::{read_stl, stats};
 
 type RawFieldFn = extern "C" fn(f64, f64, f64) -> u8;
+
+/// Stage log with elapsed seconds, same format as the Rust front ends and
+/// the Python original.
+fn log(t0: Instant, msg: &str) {
+    println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
+}
 
 /// Field source accepted from Python.
 enum PyField {
@@ -157,6 +164,7 @@ fn render_and_save(
     max_val: f64,
     eval_limit: usize,
 ) -> PyResult<PyObject> {
+    let t0 = Instant::now();
     let filename = filename.to_string();
     let (mesh, written) = with_field(py, field, move |f| {
         let mesh = render_field(f, res, min_val, max_val, eval_limit)
@@ -164,13 +172,20 @@ fn render_and_save(
         let lower = filename.to_ascii_lowercase();
         let written = if lower.ends_with(".obj") {
             let base = &filename[..filename.len() - 4];
-            xyzcadrs::export::write_obj(base, &mesh.vertices, &mesh.groups)
-                .map_err(|e| PyValueError::new_err(e.to_string()))?
+            let written = xyzcadrs::export::write_obj(base, &mesh.vertices, &mesh.groups)
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
+            log(t0, &format!("wrote {base}.obj (+ .mtl), {written} triangles"));
+            written
         } else {
             let stem = filename.strip_suffix(".stl").unwrap_or(&filename);
-            xyzcadrs::export::write_stl(format!("{stem}.stl"), &mesh.vertices, &mesh.polygons)
-                .map_err(|e| PyValueError::new_err(e.to_string()))?
+            let out = format!("{stem}.stl");
+            let written = xyzcadrs::export::write_stl(&out, &mesh.vertices, &mesh.polygons)
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
+            log(t0, &format!("wrote {out}, {written} triangles"));
+            written
         };
+        xyzcadrs::render::report(&mesh.summary);
+        log(t0, "Done.");
         Ok((mesh, written))
     })?;
     summary_to_dict(py, &mesh, written)

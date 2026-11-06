@@ -41,17 +41,11 @@ def renderAndSave(func, filename, res=1, params=()):
     The field is invoked with ``(x, y, z, params)``. Returns the summary
     dict (additive; the original returns None).
     """
-    import time
-
-    t0 = time.time()
-    # Startup line like the original's, stating which renderer is actually
-    # running and what it replaces (the original would print
-    # "running xyzcad version 0.7.3").
-    print(f"running rust implementation xyzcadrs {_renderer_version} "
-          f"(replacing xyzcad version {_ORIGINAL_VERSION})")
-    result = _render_and_save(func, filename, res, params)
-    print(f"[{time.time() - t0:9.4f}] Done.")
-    return result
+    # flush=True so the line appears BEFORE the Rust-side stage log lines
+    # (Rust println to a pipe is block-buffered, Python would interleave late).
+    print(f"running rust implementation xyzcadrs {__import__('xyzcadrs').__version__} "
+          f"(replacing xyzcad version {_ORIGINAL_VERSION})", flush=True)
+    return _render_and_save(func, filename, res, params)
 
 
 def mesh_surface_function(func, res, params, t0=None):
