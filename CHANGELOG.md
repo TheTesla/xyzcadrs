@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versioning aims at [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-27
+
+### Added
+
+- **Drop-in compatibility layer**: the wheel ships a module `xyzcad`
+  (`xyzcad.render.renderAndSave` / `mesh_surface_function`) with the
+  original's signatures, so existing programs keep importing
+  `from xyzcad import render` unchanged while the Rust renderer runs
+  underneath. Verified end-to-end from a fresh wheel install: a
+  fuzzyometry part renders with identical counters (1444 cubes / 0
+  repairs) through the old import path. Do not install the original
+  xyzcad in the same environment (import-name collision).
+- `tools/install_python_binding.sh`: one-command installer — venv with a
+  PyO3-compatible Python (3.9–3.13, probed explicitly), maturin/numba/
+  numpy, rustup bootstrap if cargo is missing, wheel build and render
+  self-test. Tested end-to-end from an empty directory.
+- `render_and_save(field, filename, res, params=())`: params is now the
+  4th positional argument, matching the original's
+  `renderAndSave(fun, fn, res, partpl)` call shape.
+- PyPI-ready packaging (PEP 621 metadata via maturin).
+
 ## [0.2.0] - 2026-10-27
 
 ### Added

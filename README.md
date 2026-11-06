@@ -37,6 +37,43 @@ generation — the field is just a closure.
 - **Built-in mesh validation** — STL reader + watertightness/volume/bbox
   statistics, exposed as `xyzcadrs validate <file>`.
 
+## Installation
+
+### From PyPI (recommended)
+
+```console
+pip install xyzcadrs
+```
+
+Requires Python 3.9–3.13 (3.14 is not supported by the compiler backend
+yet) and a platform with prebuilt wheels (Linux x86-64, macOS, Windows —
+otherwise pip compiles from source, which needs Rust).
+
+### Existing programs keep working unchanged
+
+The wheel ships a compatibility layer under the original import name:
+
+```python
+from xyzcad import render                      # unchanged imports
+render.renderAndSave(fun, fn, res, partpl)     # unchanged call
+```
+
+`xyzcad.render.renderAndSave` and `xyzcad.render.mesh_surface_function`
+have the same signatures as the original and produce bit-identical meshes —
+the Rust renderer runs underneath. Do **not** install the original xyzcad
+into the same environment (both provide the `xyzcad` import name; the last
+installed wins).
+
+### From source
+
+```console
+git clone https://github.com/TheTesla/xyzcadrs.git
+bash xyzcadrs/tools/install_python_binding.sh   # creates venv + self-test
+```
+
+The script picks a compatible Python automatically, bootstraps Rust (only
+a build tool, needed once) and verifies the installation with a render.
+
 ## Quick start
 
 ### As a library
