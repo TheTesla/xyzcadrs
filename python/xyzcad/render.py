@@ -13,25 +13,24 @@ Provided functions (subset chosen by real-world usage, e.g. SpiroBrixx's
 
 The field function contract is unchanged: a numba ``njit`` function (or
 plain callable) receiving ``(x, y, z, params)`` and returning bool/int.
+
+The startup/progress output ("running rust implementation xyzcadrs ...",
+"Compiling", the per-stage lines) is emitted by ``xyzcadrs.render_and_save``.
 """
 
 import numpy as np
 
-from xyzcad._version import __version__ as _SHIM_VERSION
-from xyzcadrs import __version__ as _renderer_version
 from xyzcadrs import render as _render_mesh
 from xyzcadrs import render_and_save as _render_and_save
-
-# Version string of the original xyzcad this shim replaces, as it appears
-# in the original's startup line ("running xyzcad version 0.7.3").
-_ORIGINAL_VERSION = "0.7.3"
 
 __all__ = ["renderAndSave", "mesh_surface_function", "get_installed_version"]
 
 
 def get_installed_version():
     """Version of the renderer powering this shim (xyzcadrs)."""
-    return _renderer_version
+    import xyzcadrs
+
+    return xyzcadrs.__version__
 
 
 def renderAndSave(func, filename, res=1, params=()):
@@ -41,10 +40,6 @@ def renderAndSave(func, filename, res=1, params=()):
     The field is invoked with ``(x, y, z, params)``. Returns the summary
     dict (additive; the original returns None).
     """
-    # flush=True so the line appears BEFORE the Rust-side stage log lines
-    # (Rust println to a pipe is block-buffered, Python would interleave late).
-    print(f"running rust implementation xyzcadrs {__import__('xyzcadrs').__version__} "
-          f"(replacing xyzcad version {_ORIGINAL_VERSION})", flush=True)
     return _render_and_save(func, filename, res, params)
 
 

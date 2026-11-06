@@ -24,15 +24,15 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use xyzcadrs::field::Field;
-use xyzcadrs::mesh::{render as render_field, MeshResult};
+use xyzcadrs::mesh::{render_with_log_offset, MeshResult};
 use xyzcadrs::validate::{read_stl, stats};
 
 type RawFieldFn = extern "C" fn(f64, f64, f64) -> u8;
 
-/// Stage log with elapsed seconds, same format as the Rust front ends and
-/// the Python original.
-fn log(t0: Instant, msg: &str) {
-    println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
+/// Stage log with elapsed seconds plus a front-end offset, same format as
+/// the Rust front ends and the Python original.
+fn log(t0: Instant, offset: f64, msg: &str) {
+    println!("[{:9.4}] {}", t0.elapsed().as_secs_f64() + offset, msg);
 }
 
 /// Field source accepted from Python.
@@ -154,7 +154,7 @@ fn summary_to_dict(py: Python, mesh: &MeshResult, triangles: usize) -> PyResult<
 /// convention. The export format follows the extension (`.stl` / `.obj`).
 /// Returns the render summary as a dict.
 #[pyfunction]
-#[pyo3(signature = (field, filename, res, *, min_val = -1000.0, max_val = 1000.0, eval_limit = 0))]
+#[pyo3(signature = (field, filename, res, *, min_val = -1000.0, max_val = 1000.0, eval_limit = 0, log_offset = 0.0))]
 fn render_and_save(
     py: Python,
     field: PyObject,
@@ -163,29 +163,34 @@ fn render_and_save(
     min_val: f64,
     max_val: f64,
     eval_limit: usize,
+    log_offset: f64,
 ) -> PyResult<PyObject> {
     let t0 = Instant::now();
     let filename = filename.to_string();
     let (mesh, written) = with_field(py, field, move |f| {
-        let mesh = render_field(f, res, min_val, max_val, eval_limit)
+        let mesh = render_with_log_offset(f, res, min_val, max_val, eval_limit, log_offset)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         let lower = filename.to_ascii_lowercase();
         let written = if lower.ends_with(".obj") {
             let base = &filename[..filename.len() - 4];
             let written = xyzcadrs::export::write_obj(base, &mesh.vertices, &mesh.groups)
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            log(t0, &format!("wrote {base}.obj (+ .mtl), {written} triangles"));
+            log(
+                t0,
+                log_offset,
+                &format!("wrote {base}.obj (+ .mtl), {written} triangles"),
+            );
             written
         } else {
             let stem = filename.strip_suffix(".stl").unwrap_or(&filename);
             let out = format!("{stem}.stl");
             let written = xyzcadrs::export::write_stl(&out, &mesh.vertices, &mesh.polygons)
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
-            log(t0, &format!("wrote {out}, {written} triangles"));
+            log(t0, log_offset, &format!("wrote {out}, {written} triangles"));
             written
         };
         xyzcadrs::render::report(&mesh.summary);
-        log(t0, "Done.");
+        log(t0, log_offset, "Done.");
         Ok((mesh, written))
     })?;
     summary_to_dict(py, &mesh, written)
@@ -195,7 +200,7 @@ fn render_and_save(
 /// `vertices`, `groups` (one dict per material with `material` and
 /// `polygons`), `polygons` and `summary`.
 #[pyfunction]
-#[pyo3(signature = (field, res, *, min_val = -1000.0, max_val = 1000.0, eval_limit = 0))]
+#[pyo3(signature = (field, res, *, min_val = -1000.0, max_val = 1000.0, eval_limit = 0, log_offset = 0.0))]
 fn render(
     py: Python,
     field: PyObject,
@@ -203,9 +208,10 @@ fn render(
     min_val: f64,
     max_val: f64,
     eval_limit: usize,
+    log_offset: f64,
 ) -> PyResult<PyObject> {
     let mesh = with_field(py, field, move |f| {
-        render_field(f, res, min_val, max_val, eval_limit)
+        render_with_log_offset(f, res, min_val, max_val, eval_limit, log_offset)
             .map_err(|e| PyValueError::new_err(e.to_string()))
     })?;
     mesh_to_dict(py, &mesh)

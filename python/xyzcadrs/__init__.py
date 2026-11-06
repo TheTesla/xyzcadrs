@@ -33,6 +33,8 @@ Return values are material ids: ``<= 0`` is air, values above 255 are
 clamped. Plain ``True``/``False`` mean material 1 / air.
 """
 
+import time
+
 from ._native import (
     __version__,
     render as _render_native,
@@ -51,6 +53,23 @@ __all__ = [
     "write_obj",
     "NumbaField",
 ]
+
+_ORIGINAL_VERSION = "0.7.3"
+
+
+def _start_log():
+    """Original-style startup: the 'running' and 'Compiling' banners are
+    phase starts at 0.0000; the compilation of the field trampoline happens
+    under the 'Compiling' banner and its duration appears in the timestamp
+    of the following stage line (the native call receives the elapsed time
+    as its log-clock offset, exactly like the original's log_it flow)."""
+    print(
+        f"[{0.0:9.4f}] running rust implementation xyzcadrs {__version__} "
+        f"(replacing xyzcad version {_ORIGINAL_VERSION})",
+        flush=True,
+    )
+    print(f"[{0.0:9.4f}] Compiling", flush=True)
+    return time.perf_counter()
 
 
 class NumbaField:
@@ -124,33 +143,6 @@ def _adapt(field, params=()):
     return field
 
 
-def _describe_field(field):
-    """Log what kind of field was passed and what compilation it implies.
-
-    The original printed a "Compiling" step (numba JIT of its whole
-    renderer, ~25 s). There is no renderer JIT here; the only compilation
-    is the tiny numba.cfunc trampoline around an njit field (once, ~0.4 s),
-    which happens inside _adapt().
-    """
-    if hasattr(field, "address"):
-        print("    field: native C callback (no compilation)", flush=True)
-        return
-    try:
-        from numba.core.dispatcher import Dispatcher
-
-        is_njit = isinstance(field, Dispatcher)
-    except ImportError:
-        is_njit = False
-    if not is_njit:
-        print(
-            "    field: plain Python callable (no JIT; "
-            "decorate the field with @njit for ~100x faster evaluation)",
-            flush=True,
-        )
-    # njit fields are covered by the renderer's "Compiling" banner (field
-    # machine code is produced at the first evaluation, inside it).
-
-
 def render_and_save(
     field, filename, res, params=(), *, min_val=-1000.0, max_val=1000.0, eval_limit=0
 ):
@@ -162,14 +154,17 @@ def render_and_save(
     ``filtered_cubes``, ``polygons``, ``repaired_polygons`` and
     ``triangles_written``.
     """
-    _describe_field(field)
+    t0 = _start_log()
+    adapted = _adapt(field, params)
+    log_offset = time.perf_counter() - t0
     return _render_and_save_native(
-        _adapt(field, params),
+        adapted,
         filename,
         res,
         min_val=min_val,
         max_val=max_val,
         eval_limit=eval_limit,
+        log_offset=log_offset,
     )
 
 
@@ -177,12 +172,16 @@ def render(field, res, params=(), *, min_val=-1000.0, max_val=1000.0, eval_limit
     """Render ``field`` and return a dict with ``vertices``, ``groups``,
     ``polygons`` and ``summary`` (no file is written). The field is called
     with the original 4-tuple convention ``(x, y, z, params)``."""
+    t0 = _start_log()
+    adapted = _adapt(field, params)
+    log_offset = time.perf_counter() - t0
     return _render_native(
-        _adapt(field, params),
+        adapted,
         res,
         min_val=min_val,
         max_val=max_val,
         eval_limit=eval_limit,
+        log_offset=log_offset,
     )
 
 

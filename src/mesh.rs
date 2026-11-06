@@ -87,24 +87,31 @@ pub fn render(
     max_val: f64,
     eval_limit: usize,
 ) -> Result<MeshResult> {
+    render_with_log_offset(f, res, min_val, max_val, eval_limit, 0.0)
+}
+
+/// [`render`] with a log-clock offset: the stage-log timestamps continue an
+/// externally started clock, so a front end can place its own pre-render
+/// phase (e.g. field compilation) under the same cumulative timeline.
+pub fn render_with_log_offset(
+    f: &(dyn Field + Sync),
+    res: f64,
+    min_val: f64,
+    max_val: f64,
+    eval_limit: usize,
+    log_offset: f64,
+) -> Result<MeshResult> {
     if res <= 0.0 || res.is_nan() {
         return Err(crate::error::Error::InvalidResolution(res));
     }
 
-    // Stage log in the wording of the Python original, so every front end
-    // (CLI, Python binding, library) shows the same progress. Like the
-    // original's log_it, each timestamp is taken AFTER the work it names -
-    // so every line shows how long that step took.
+    // Stage log exactly in the output form of the Python original: banner
+    // lines ("Compiling") start a phase, the cumulative timestamp of the
+    // FOLLOWING line carries that phase's duration. `log_offset` lets a
+    // front end continue one clock across pre-render work (e.g. the Python
+    // binding's field-trampoline compilation).
     let t0 = Instant::now();
-    let log = |msg: &str| println!("[{:9.4}] {}", t0.elapsed().as_secs_f64(), msg);
-
-    // Like the original's "Compiling" step: on the first call of a run the
-    // field's machine code is produced here (numba field JIT / first cfunc
-    // execution). Warm runs and native C callbacks pass through instantly.
-    // The evaluation happens BEFORE the log line, so the timestamp measures
-    // the compilation.
-    std::hint::black_box(f([0.0, 0.0, 0.0]));
-    log("Compiling");
+    let log = |msg: &str| println!("[{:9.4}] {}", t0.elapsed().as_secs_f64() + log_offset, msg);
 
     log("Searching initial point on surface");
     let seed = find_surface_pnt(f, min_val, max_val, res, eval_limit)?;
