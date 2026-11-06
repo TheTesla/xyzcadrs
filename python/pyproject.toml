@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "xyzcadrs"
-version = "0.3.0"
+version = "0.3.1"
 description = "Functional/implicit CAD in Rust: render f(x,y,z) material fields to watertight STL and colored OBJ. Python bindings with numba njit field support."
 requires-python = ">=3.9"
 license = "AGPL-3.0-or-later"

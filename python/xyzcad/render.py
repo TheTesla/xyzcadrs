@@ -36,7 +36,16 @@ def renderAndSave(func, filename, res=1, params=()):
     The field is invoked with ``(x, y, z, params)``. Returns the summary
     dict (additive; the original returns None).
     """
-    return _render_and_save(func, filename, res, params)
+    import time
+
+    t0 = time.time()
+    # Same startup line as the original, so users can see which renderer is
+    # actually running (the version reported is xyzcadrs, not 0.7.3).
+    print(f"running xyzcadrs {__import__('xyzcadrs').__version__} "
+          f"(Rust renderer, xyzcad shim)")
+    result = _render_and_save(func, filename, res, params)
+    print(f"[{time.time() - t0:9.4f}] Done.")
+    return result
 
 
 def mesh_surface_function(func, res, params, t0=None):
